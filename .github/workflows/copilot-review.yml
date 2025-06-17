@@ -1,11 +1,10 @@
-# .github/workflows/code-review.yml
 name: AI Code Review
 
 on: [pull_request]
 
-permissions:  # 👈 新增权限配置
-  pull-requests: write  # 允许评论 PR
-  contents: read  
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
   lint-and-review:
@@ -16,29 +15,37 @@ jobs:
       - name: Debug Permissions
         run: echo "${{ toJSON(github.token_permissions) }}"
 
-      # 1. 用 AI 分析 ESLint 结果并生成 PR 评论
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run ESLint
+        run: npx eslint . --format json --output-file eslint-report.json || true
+
       - name: AI Review Comment
         uses: actions/github-script@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           script: |
-            const eslintReport = require('./eslint-report.json');
+            let eslintReport;
+            try {
+              eslintReport = require('./eslint-report.json');
+            } catch (error) {
+              console.log('No ESLint issues found or report not generated');
+              return;
+            }
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-            });       
-              issue_number: context.issue.number,
             });
 
-            // 用 Copilot 生成建议（模拟）
             const aiSuggestions = eslintReport.map(issue => ({
               line: issue.line,
               body: `**Copilot 建议**: ${issue.message}。尝试修复：\`${issue.fix || '检查变量作用域'}\``
             }));
 
-            // 提交评论
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
