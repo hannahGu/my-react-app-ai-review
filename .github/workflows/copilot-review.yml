@@ -19,6 +19,8 @@ jobs:
       # 1. 用 AI 分析 ESLint 结果并生成 PR 评论
       - name: AI Review Comment
         uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           script: |
             const eslintReport = require('./eslint-report.json');
