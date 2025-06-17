@@ -1,0 +1,104 @@
+name: Frontend Code Review
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 检出代码
+      - uses: actions/checkout@v4
+
+      # 2. 设置 Node.js 环境
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install ESLint
+        run: npm install eslint@8.56.0
+
+      - name: Run ESLint with Strict Rules
+        run: |
+          npx eslint src --max-warnings 0 \
+            --rule 'react-hooks/exhaustive-deps: error' \
+            --rule 'react/no-danger: error' \
+            --format json --output-file eslint-report.json || true
+          # 确保报告文件存在
+          [ -s "eslint-report.json" ] || echo '[]' > eslint-report.json
+
+      # 4. 运行代码审查
+      - name: Run Frontend Review
+        run: |
+          echo "::group::📊 Frontend Code Review Report"
+          # ESLint 检查
+          eslint "src/**/*.{js,jsx,ts,tsx}" --format json --output-file eslint-report.json || true
+          
+          # 生成易读报告
+          echo "### 🛠 ESLint 问题" >> $GITHUB_STEP_SUMMARY
+          jq -r '.[] | "\(.filePath):\(.messages[].line) \(.messages[].message)"' eslint-report.json >> $GITHUB_STEP_SUMMARY
+          
+          # 简单组件分析
+          echo "### 🧩 React 组件统计" >> $GITHUB_STEP_SUMMARY
+          grep -r "function Component" src/ | wc -l | xargs echo "- 找到的组件数量:" >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
+
+      # 5. 输出结果到PR评论
+      - name: Create PR Comment
+        uses: actions/github-script@v6
+        if: always()
+        with:
+          script: |
+            const report = require('./eslint-report.json');
+            const issues = report.reduce((sum, file) => sum + file.messages.length, 0);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🔍 Copilot 前端审查结果:\n\n` +
+                    `• ESLint 问题: ${issues} 处\n` +
+                    `• 查看详情: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+            });
+
+      - name: Add AI Review Comments
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // 模拟AI建议（实际需接入LLM API）
+            const suggestions = [
+              {
+                path: 'src/App.js',
+                line: 12,
+                body: "建议使用 `useCallback` 优化性能：\n```suggestion\nconst handleClick = useCallback(() => {...}, []);\n```"
+              }
+            ];
+            
+            await Promise.all(suggestions.map(suggestion => 
+              github.rest.pulls.createReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: context.sha,
+                path: suggestion.path,
+                line: suggestion.line,
+                body: suggestion.body
+              })
+            ));
+
+      - name: Analyze with OpenAI
+        run: |
+          curl https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "gpt-4",
+              "messages": [{
+                "role": "user",
+                "content": "Review this code:\n```$(cat src/App.js)```\nFocus on: 1. Performance 2. Readability"
+              }]
+            }' > ai-report.json
+          
+          jq '.choices[0].message.content' ai-report.json >> $GITHUB_STEP_SUMMARY
