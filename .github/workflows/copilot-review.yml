@@ -67,26 +67,23 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            // 模拟AI建议（实际需接入LLM API）
-            const suggestions = [
-              {
-                path: 'src/App.js',
-                line: 12,
-                body: "建议使用 `useCallback` 优化性能：\n```suggestion\nconst handleClick = useCallback(() => {...}, []);\n```"
-              }
-            ];
-            
-            await Promise.all(suggestions.map(suggestion => 
-              github.rest.pulls.createReviewComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-                commit_id: context.sha,
-                path: suggestion.path,
-                line: suggestion.line,
-                body: suggestion.body
-              })
-            ));
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            await github.rest.pulls.createReviewComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: "建议使用 try/catch 处理这个异步操作",
+              commit_id: pr.head.sha,
+              path: "src/utils/api.js",
+              line: 8,
+              side: "RIGHT"
+            });
+
 
       - name: Analyze with OpenAI
         run: |
