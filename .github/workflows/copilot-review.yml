@@ -46,23 +46,6 @@ jobs:
           grep -r "function Component" src/ | wc -l | xargs echo "- 找到的组件数量:" >> $GITHUB_STEP_SUMMARY
           echo "::endgroup::"
 
-      # 5. 输出结果到PR评论
-      - name: Create PR Comment
-        uses: actions/github-script@v6
-        if: always()
-        with:
-          script: |
-            const report = require('./eslint-report.json');
-            const issues = report.reduce((sum, file) => sum + file.messages.length, 0);
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🔍 Copilot 前端审查结果:\n\n` +
-                    `• ESLint 问题: ${issues} 处\n` +
-                    `• 查看详情: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-            });
-
       - name: Add AI Review Comments
         uses: actions/github-script@v6
         with:
