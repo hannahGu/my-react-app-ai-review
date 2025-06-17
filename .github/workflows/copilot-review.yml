@@ -46,39 +46,6 @@ jobs:
           grep -r "function Component" src/ | wc -l | xargs echo "- 找到的组件数量:" >> $GITHUB_STEP_SUMMARY
           echo "::endgroup::"
 
-      - name: Add AI Review Comments
-        uses: actions/github-script@v6
-        with:
-          script: |
-            // 1. 获取PR的差异数据
-            const { data: diffData } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              mediaType: {
-                format: 'diff'
-              }
-            });
-
-            // 2. 解析diff获取目标文件的hunk
-            const diffLines = diffData.split('\n');
-            const fileDiffStart = diffLines.findIndex(line => line.includes('src/utils/api.js'));
-            const diffHunk = diffLines.slice(fileDiffStart).join('\n');
-
-            // 3. 创建评论（包含必需的diff_hunk）
-            await github.rest.pulls.createReviewComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              body: "建议使用 try/catch 处理这个异步操作",
-              commit_id: "${{ github.event.pull_request.head.sha }}",
-              path: "src/utils/api.js",
-              line: 8,
-              side: "RIGHT",
-              diff_hunk: diffHunk  // 关键修复：添加差异块
-            });
-
-
 
       - name: Analyze with OpenAI
         run: |
