@@ -3,11 +3,18 @@ name: AI Code Review
 
 on: [pull_request]
 
+permissions:  # 👈 新增权限配置
+  pull-requests: write  # 允许评论 PR
+  contents: read  
+
 jobs:
   lint-and-review:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Debug Permissions
+        run: echo "${{ toJSON(github.token_permissions) }}"
 
       # 1. 用 AI 分析 ESLint 结果并生成 PR 评论
       - name: AI Review Comment
@@ -18,6 +25,8 @@ jobs:
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });       
               issue_number: context.issue.number,
             });
 
