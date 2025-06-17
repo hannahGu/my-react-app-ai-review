@@ -67,22 +67,34 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: pr } = await github.rest.pulls.get({
+            // 1. 获取PR的差异数据
+            const { data: diffData } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
+              pull_number: context.issue.number,
+              mediaType: {
+                format: 'diff'
+              }
             });
 
+            // 2. 解析diff获取目标文件的hunk
+            const diffLines = diffData.split('\n');
+            const fileDiffStart = diffLines.findIndex(line => line.includes('src/utils/api.js'));
+            const diffHunk = diffLines.slice(fileDiffStart).join('\n');
+
+            // 3. 创建评论（包含必需的diff_hunk）
             await github.rest.pulls.createReviewComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
               body: "建议使用 try/catch 处理这个异步操作",
-              commit_id: pr.head.sha,
+              commit_id: "${{ github.event.pull_request.head.sha }}",
               path: "src/utils/api.js",
               line: 8,
-              side: "RIGHT"
+              side: "RIGHT",
+              diff_hunk: diffHunk  // 关键修复：添加差异块
             });
+
 
 
       - name: Analyze with OpenAI
