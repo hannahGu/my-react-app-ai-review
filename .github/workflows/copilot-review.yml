@@ -12,9 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug Permissions
-        run: echo "${{ toJSON(github.token_permissions) }}"
-
       - name: Install dependencies
         run: npm install
 
@@ -44,10 +41,10 @@ jobs:
             const aiSuggestions = eslintReport.map(issue => ({
               line: issue.line,
               body: `**Copilot 建议**: ${issue.message}。尝试修复：\`${issue.fix || '检查变量作用域'}\``
-            }));
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
+            const aiSuggestions = eslintReport.length > 0 ? eslintReport.map(issue => ({
+              line: issue.line || 'Unknown',
+              body: `**Copilot 建议**: ${issue.message || 'No message'}。尝试修复：\`${issue.fix || '检查变量作用域'}\``
+            })) : [];
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: '## AI 审查报告\n' + 
