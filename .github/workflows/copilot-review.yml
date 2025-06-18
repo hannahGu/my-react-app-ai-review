@@ -36,21 +36,22 @@ jobs:
               return;
             }
 
-            const { data: comments } = await github.rest.issues.listComments({
+            const aiSuggestions = eslintReport.length > 0
+              ? eslintReport.map(issue => ({
+                  line: issue.line || 'Unknown',
+                  body: `**Copilot Suggestion**: ${issue.message || 'No message'}. Try fixing: \`${issue.fix || 'Check variable scope'}\``
+                }))
+              : [];
+
+            if (aiSuggestions.length === 0) {
+              console.log('No suggestions generated from ESLint report.');
+              return;
+            }
+
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-            });
-
-            const aiSuggestions = eslintReport.map(issue => ({
-              line: issue.line,
-              body: `**Copilot 建议**: ${issue.message}。尝试修复：\`${issue.fix || '检查变量作用域'}\``
-            const aiSuggestions = eslintReport.length > 0 ? eslintReport.map(issue => ({
-              line: issue.line || 'Unknown',
-              body: `**Copilot 建议**: ${issue.message || 'No message'}。尝试修复：\`${issue.fix || '检查变量作用域'}\``
-            })) : [];
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: '## AI 审查报告\n' + 
-                    aiSuggestions.map(s => `📌 **行 ${s.line}**: ${s.body}`).join('\n')
+              body: '## AI Review Report\n' +
+                    aiSuggestions.map(s => `📌 **Line ${s.line}**: ${s.body}`).join('\n')
             });
