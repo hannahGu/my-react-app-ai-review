@@ -35,6 +35,7 @@ jobs:
               console.log('No ESLint issues found or report not generated');
               return;
             }
+            console.log(JSON.stringify(eslintReport, null, 2));
             const aiSuggestions = eslintReport.length > 0
               ? eslintReport.flatMap(result => 
                   result.messages.map(message => ({
