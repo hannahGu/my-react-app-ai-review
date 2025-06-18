@@ -39,7 +39,7 @@ jobs:
             const aiSuggestions = eslintReport.length > 0
               ? eslintReport.flatMap(result => 
                   result.messages.map(message => ({
-                    file: message.filePath || 'Unknown',
+                    file: result.filePath.split('/').slice(-2).join('/') || 'Unknown',
                     line: message.line || 'Unknown',
                     body: `**Copilot Suggestion**: ${message.message || 'No message'}. Rule: \`${message.ruleId || 'unknown rule'}\``
                   }))
