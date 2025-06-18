@@ -58,3 +58,41 @@ jobs:
               body: '## AI Review Report\n' +
                     aiSuggestions.map(s => `📌 **${s.file}**Line ${s.line}**: ${s.body}`).join('\n')
             });
+
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Copilot suggestions
+        run: |
+          # 这里可以调用 Copilot API 或模拟 Copilot 分析
+          echo "## Copilot Code Review" >> $GITHUB_STEP_SUMMARY
+          echo "- **Performance**: Cache `array.length` in loops" >> $GITHUB_STEP_SUMMARY
+          echo "- **Readability**: Use optional chaining (`?.`)" >> $GITHUB_STEP_SUMMARY
+      - name: Post PR comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8')
+            })
+
+  insert_comments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Copilot suggestions to code
+        run: |
+          # 在指定位置插入注释
+          sed -i '/function calculate()/a \
+          // COPILOT: Use memoization to cache results' app.js
+      - name: Commit changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git commit -am "Added Copilot suggestions"
+          git push
+
