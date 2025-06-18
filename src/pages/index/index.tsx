@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 
 import './index.less'
 
+// 注意：以下代码示例中包含多个潜在的安全问题和不良实践，旨在展示如何识别和改进这些问题。
+
 async function fetchUser(id) {
   const response = await fetch(`/api/users/${id}`);
   return response.json(); // 缺少错误处理
