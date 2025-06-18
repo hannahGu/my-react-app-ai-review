@@ -35,12 +35,13 @@ jobs:
               console.log('No ESLint issues found or report not generated');
               return;
             }
-
             const aiSuggestions = eslintReport.length > 0
-              ? eslintReport.map(issue => ({
-                  line: issue.line || 'Unknown',
-                  body: `**Copilot Suggestion**: ${issue.message || 'No message'}. Try fixing: \`${issue.fix || 'Check variable scope'}\``
-                }))
+              ? eslintReport.flatMap(result => 
+                  result.messages.map(message => ({
+                    line: message.line || 'Unknown',
+                    body: `**Copilot Suggestion**: ${message.message || 'No message'}. Rule: \`${message.ruleId || 'unknown rule'}\``
+                  }))
+                )
               : [];
 
             if (aiSuggestions.length === 0) {
